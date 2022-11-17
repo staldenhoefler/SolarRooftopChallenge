@@ -1,0 +1,328 @@
+---
+title: "R Notebook Denis Solar"
+output: html_notebook
+---
+
+```{r}
+library(ggplot2)
+library(plyr)
+library(readr)
+library(dplyr)
+```
+
+
+
+```{r}
+daten <- read.csv("C:/Users/denis/OneDrive/Dokumente/FHNW/1.Sem/Solar Challenge/Daten/MD_clean2021/000000000A10C053_data2021_kWh.csv")
+```
+
+
+
+```{r}
+production <- ts(daten$production.kWh, start = 1, end = 8760)
+plot(production)
+```
+
+
+
+```{r}
+consumption <- ts(daten$consumption.kWh, start = 1, end = 8760)
+plot(consumption)
+```
+
+```{r}
+productionFirstDay <- ts(daten$production.kWh, start = 1, end = 24)
+plot(productionFirstDay)
+```
+
+
+```{r}
+productionDurchschnittTaeglich <- c(1)
+produktionsvektor <- daten$production.kWh
+for(x in 0:364) {
+  beginn <- x*24
+  ending <- x*24+23
+  productionDurchschnittTaeglich <- append(productionDurchschnittTaeglich, mean(produktionsvektor[beginn:ending]))
+}
+productionDurchschnittTaeglich <- productionDurchschnittTaeglich[-1]
+plot(productionDurchschnittTaeglich)
+df <- data.frame(0:364, productionDurchschnittTaeglich)
+ggplot(df, aes(x = 0:364, y = productionDurchschnittTaeglich))+geom_line()
+ggplot(df, aes(x = 0:364, y = productionDurchschnittTaeglich))+geom_smooth()
+
+```
+
+```{r}
+verbrauchDurchschnittTaeglich <- c(1)
+verbrauchsvektor <- daten$consumption.kWh
+for(x in 0:364) {
+  beginn <- x*24
+  ending <- x*24+23
+  verbrauchDurchschnittTaeglich <- append(verbrauchDurchschnittTaeglich, mean(verbrauchsvektor[beginn:ending]))
+}
+verbrauchDurchschnittTaeglich <- verbrauchDurchschnittTaeglich[-1]
+plot(verbrauchDurchschnittTaeglich)
+df <- data.frame(0:364, verbrauchDurchschnittTaeglich)
+ggplot(df, aes(x = 0:364, y = verbrauchDurchschnittTaeglich))+geom_line()
+ggplot(df, aes(x = 0:364, y = verbrauchDurchschnittTaeglich))+geom_smooth()
+
+
+
+```
+
+
+```{r}
+completeDF <- data.frame(0:364, verbrauchDurchschnittTaeglich, productionDurchschnittTaeglich)
+
+ggplot(completeDF, aes(x = completeDF$X0.364))+geom_line(aes(y=completeDF$verbrauchDurchschnittTaeglich), color = "blue") + geom_line(aes(y = completeDF$productionDurchschnittTaeglich), color = "orange")
+
+ggplot(completeDF, aes(x = completeDF$X0.364))+geom_smooth(aes(y=completeDF$verbrauchDurchschnittTaeglich), color = "blue") + geom_smooth(aes(y = completeDF$productionDurchschnittTaeglich), color = "orange")
+```
+
+Import many csvs
+```{r}
+
+
+```
+
+
+Erkunden
+
+```{r}
+
+```
+```{r}
+
+```
+Versuch Datensatz in einem Vektor zu speichern.
+```{r}
+dreissigHaeuser <- c(NA)
+allfiles <- list.files(path = "C:/Users/denis/OneDrive/Dokumente/FHNW/1.Sem/Solar Challenge/Daten/MD_clean2021/", pattern = "*.csv", full.names = TRUE)
+for(x in 30){
+  
+  csv <- read.csv(file = allfiles[x])
+  df <- data.frame(csv)
+  dreissigHaeuser <- append(dreissigHaeuser, df)
+  
+}
+
+
+```
+
+
+```{r}
+plot(ts(dreissigHaeuser$consumption.kWh, 1, 8760))
+```
+
+
+
+
+Basisalgorithmus
+```{r}
+calculateOvershootSum <- function(overshootVector, kursVectorMWh) {
+  kursProkWh <- kursVectorMWh * 0.001
+  newVector <- overshootVector * kursProkWh
+  return(sum(newVector))
+}
+```
+
+
+```{r}
+daten <- read.csv("C:/Users/denis/OneDrive/Dokumente/FHNW/1.Sem/Solar Challenge/Daten/MD_clean2021/000000000A10C053_data2021_kWh.csv")
+kursdaten <- read.csv("C:/Users/denis/OneDrive/Dokumente/FHNW/1.Sem/Solar Challenge/Daten/HPFC_2020-10-01_CHF.csv")
+
+result <- calculateOvershootSum(daten$overshoot.kWh, kursdaten$Value)
+print(result)
+```
+
+
+```{r}
+allfiles <- list.files(path = "C:/Users/denis/OneDrive/Dokumente/FHNW/1.Sem/Solar Challenge/Daten/MD_clean2021/", pattern = "*.csv", full.names = TRUE)
+kursdaten <- read.csv("C:/Users/denis/OneDrive/Dokumente/FHNW/1.Sem/Solar Challenge/Daten/HPFC_2020-10-01_CHF.csv")
+einkommenDurchOvershoot <- data.frame(einkommen = 0, rescource = "test")
+for(x in allfiles){
+  
+  csv <- read.csv(file = x)
+  result <- calculateOvershootSum(csv$overshoot.kWh, kursdaten$Value)
+  einkommenDurchOvershoot <- rbind(einkommenDurchOvershoot, c(result, x))
+  #einkommenDurchOvershoot <- append(einkommenDurchOvershoot, result)
+}
+#einkommenDurchOvershoot <- einkommenDurchOvershoot[-1]
+#einkommenDurchOvershoot <- einkommenDurchOvershoot[-1]
+einkommenDurchOvershoot <- transform(einkommenDurchOvershoot, einkommen = as.numeric((einkommenDurchOvershoot$einkommen)))
+
+
+```
+
+Clear False Data
+```{r}
+falseDataFrame <- filter(einkommenDurchOvershoot, einkommenDurchOvershoot$einkommen<=10)
+filteredDataFrame <- filter(einkommenDurchOvershoot, einkommenDurchOvershoot$einkommen >=10)
+```
+
+
+
+
+
+```{r}
+falseDataFrame
+filteredDataFrame
+print(mean(filteredDataFrame$einkommen))
+
+
+```
+
+
+```{r}
+allfiles <- list.files(path = "C:/Users/denis/OneDrive/Dokumente/FHNW/1.Sem/Solar Challenge/Daten/MD_clean2021/", pattern = "*.csv", full.names = TRUE)
+kursdaten <- read.csv("C:/Users/denis/OneDrive/Dokumente/FHNW/1.Sem/Solar Challenge/Daten/HPFC_2020-10-01_CHF.csv")
+charging <- data.frame(geladen = 0, rescource = "test")
+for(x in allfiles){
+  csv <- read.csv(file = x)
+  charging <- rbind(charging, c(sum(csv$charging.kWh), x))
+}
+charging <- transform(charging, geladen = as.numeric(charging$geladen))
+```
+
+```{r}
+falseChargingDataFrame <- filter(charging, charging$geladen>0)
+falseChargingDataFrame
+```
+
+
+
+
+
+
+
+Model 1
+------------------------------------------------------------------------------------------
+
+```{r}
+allfiles <- list.files(path = "C:/Users/denis/OneDrive/Dokumente/FHNW/1.Sem/Solar Challenge/Daten/MD_clean2021/", pattern = "*.csv", full.names = TRUE)
+kursdaten <- read.csv("C:/Users/denis/OneDrive/Dokumente/FHNW/1.Sem/Solar Challenge/Daten/HPFC_2020-10-01_CHF.csv")
+einkommen <- data.frame(einkommen = 0, rescource = "test")
+for(x in allfiles){
+  geld <- proHaus(x, kursdaten)
+  einkommen <- rbind(einkommen, c(geld, x))
+}
+print("Ende")
+print(einkommen)
+
+```
+
+Funktion Pro Haus
+```{r}
+proHaus <- function(inputPath, kursdaten){
+  geld <- 0
+  battery <- 0
+  csv <- read.csv(file = inputPath)
+  csv <- csv[order(csv$timestamp, decreasing = FALSE), ]
+  for(i in 1:8760) {
+    aktuellerKurs <- (kursdaten$Value[i]*0.001)
+    hoechsterPreisNext24h <- hoechstenPreisSuchen(kursdaten, i)
+    row <- csv[i, ]
+    if (row$overshoot.kWh > 0) {
+      aktuellerOvershoot <- row$overshoot.kWh
+      #Wenn Batterie voll ist, muss direkt verkauft werden
+      if (battery >= 10) {
+        geld <- geld+(aktuellerOvershoot*aktuellerKurs)
+      } else {
+        
+        #Aktuell höchster Preis der nächsten 24h
+        if(hoechsterPreisNext24h == aktuellerKurs){
+          geld <- geld + ((battery + aktuellerOvershoot)*aktuellerKurs)
+          battery <- 0
+        } else {
+          #Die Batterie ist voll
+          if((battery + aktuellerOvershoot) > 10){
+            geld <- geld + (aktuellerKurs * (battery+aktuellerOvershoot-10))
+            battery <- 10
+          } else {
+            #Es hat noch Platz in der Batterie
+            battery <- battery + aktuellerOvershoot
+          }
+        }
+      }
+    } else if(aktuellerKurs == hoechsterPreisNext24h){
+      geld <- geld + (battery * aktuellerKurs)
+      battery <- 0
+    }
+    print(geld)
+  }
+  return(geld)
+}
+
+
+
+```
+
+
+
+
+```{r}
+geld <- 0
+  battery <- 0
+  kursdaten <- read.csv("C:/Users/denis/OneDrive/Dokumente/FHNW/1.Sem/Solar Challenge/Daten/HPFC_2020-10-01_CHF.csv")
+  csv <- read.csv(file = "C:/Users/denis/OneDrive/Dokumente/FHNW/1.Sem/Solar Challenge/Daten/MD_clean2021/000000000A10C053_data2021_kWh.csv")
+  csv <- csv[order(csv$timestamp, decreasing = FALSE), ]
+  csv <- cbind(csv, kursdaten$Value)
+  for(i in 1:8760) {
+    aktuellerKurs <- (kursdaten$Value[i]*0.001)
+    hoechsterPreisNext24h <- hoechstenPreisSuchen(kursdaten, i)
+    row <- csv[i, ]
+    if (row$overshoot.kWh > 0) {
+      aktuellerOvershoot <- row$overshoot.kWh
+      #Wenn Batterie voll ist, muss direkt verkauft werden
+      if (battery >= 10) {
+        geld <- geld+(aktuellerOvershoot*aktuellerKurs)
+      } else {
+        
+        #Aktuell höchster Preis der nächsten 24h
+        if(hoechsterPreisNext24h == aktuellerKurs){
+          geld <- geld + ((battery + aktuellerOvershoot)*aktuellerKurs)
+          battery <- 0
+        } else {
+          #Die Batterie ist voll
+          if(battery + aktuellerOvershoot > 10){
+            geld <- geld + (aktuellerKurs * (battery+aktuellerOvershoot-10))
+            battery <- 10
+          } else {
+            #Es hat noch Platz in der Batterie
+            battery <- battery + aktuellerOvershoot
+          }
+        }
+      }
+    } else if(aktuellerKurs == hoechsterPreisNext24h){
+      geld <- geld + (battery * aktuellerKurs)
+      battery <- 0
+    }
+  }
+  print(geld)
+
+```
+
+
+Für die nächsten 24h den höchsten Preis suchen
+```{r}
+hoechstenPreisSuchen <- function(kursdaten, zeile, zeitraum = 24){
+  if(zeile+zeitraum <= 8760){
+    kursdatenIntervall <- kursdaten[zeile:(zeile+zeitraum),]
+    return(max(kursdatenIntervall$Value, na.rm = TRUE))
+  } else {
+    kursdatenIntervall <- kursdaten[zeile:8760,]
+    return(max(kursdatenIntervall$Value, na.rm = TRUE))
+  }
+}
+```
+
+
+Testen des Models
+```{r}
+kursdaten <- read.csv("C:/Users/denis/OneDrive/Dokumente/FHNW/1.Sem/Solar Challenge/Daten/HPFC_2020-10-01_CHF.csv")
+inputPath <- "C:/Users/denis/OneDrive/Dokumente/FHNW/1.Sem/Solar Challenge/Daten/MD_clean2021/000000000A10C053_data2021_kWh.csv"
+print(proHaus(inputPath = inputPath, kursdaten = kursdaten))
+```
+
+
+
